@@ -1,0 +1,47 @@
+#!/bin/sh
+# postinst script for MythicOS
+# see: dh_installdeb(1)
+
+set -e
+
+case "$1" in
+    configure)
+        # activer le service MythicOS
+        if which update-rc.d >/dev/null 2>&1; then
+            update-rc.d mythicos-system defaults
+        fi
+
+        # compiler les schemas GLib si disponible
+        if which glib-compile-schemas >/dev/null 2>&1; then
+            glib-compile-schemas /usr/share/glib-2.0/schemas || true
+        fi
+
+        # recharger systemd et activer le service
+        if which systemctl >/dev/null 2>&1; then
+            systemctl daemon-reload || true
+            systemctl reenable mythicos-system.service || true
+        fi
+
+        # lancer le script d’ajustement MythicOS
+        if [ -f /usr/lib/mythicos/mythicos-system/mythicos-adjust.py ]; then
+            /usr/lib/mythicos/mythicos-system/mythicos-adjust.py
+        fi
+    ;;
+    abort-upgrade|abort-remove|abort-deconfigure)
+        # rien à faire
+    ;;
+    triggered)
+        if [ -f /usr/lib/mythicos/mythicos-system/mythicos-adjust.py ]; then
+            /usr/lib/mythicos/mythicos-system/mythicos-adjust.py
+        fi
+    ;;
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+# DEBHELPER hook
+# dh_installdeb will replace this with shell code automatically
+
+exit 0

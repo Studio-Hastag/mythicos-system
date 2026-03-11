@@ -1,0 +1,3 @@
+mythicos-system: file-in-usr-local
+mythicos-system: dir-in-usr-local
+mythicos-system: package-installs-apt-preferences

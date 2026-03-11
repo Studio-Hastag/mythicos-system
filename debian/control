@@ -1,0 +1,25 @@
+Source: mythicos-system
+Section: admin
+Priority: optional
+Maintainer: MythicOS Team <packages@mythicos.hastag.fr>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 4.6.2
+Homepage: https://mythicos.hastag.fr
+
+Package: mythicos-system
+Architecture: all
+Depends: python3 (>= 3.8),
+         perl,
+         apt,
+         aptitude,
+         zenity,
+         ${misc:Depends}
+Provides: mintsystem
+Replaces: mintsystem
+Conflicts: mintsystem
+Description: MythicOS system base package
+ Core system package for MythicOS.
+ .
+ Provides system utilities, configuration helpers and
+ integration scripts used by the MythicOS desktop and
+ other MythicOS tools.
