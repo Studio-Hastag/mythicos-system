@@ -1,0 +1,3 @@
+Package: *
+Pin: release o=MythicOS
+Pin-Priority: 700
