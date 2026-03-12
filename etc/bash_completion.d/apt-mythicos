@@ -1,6 +1,4 @@
-#
-# Bash completion file for Linux Mint apt utility.
-#
+# Bash completion for MythicOS apt wrapper
 
 have apt &&
 _apt()
@@ -9,7 +7,7 @@ _apt()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    # Completion of commands.
+    # Completion des commandes
     if [[ $COMP_CWORD == 1 ]]; then
     COMPREPLY=( $(compgen -W '
         add-repository autoclean autopurge autoremove build build-dep changelog check clean
@@ -21,40 +19,35 @@ _apt()
     return 0
     fi
 
-    # Completion of command parameters.
+    # Completion des paramètres
     opt="${COMP_WORDS[1]}"
     case $opt in
-    # Commands which require filename.
-    # Note: "search" command does not necessarilly require
-    # filename, it can accept any pattern, but I put it in this
-    # group in order to allow filename-completion for this command.
+
+    # Commandes qui prennent un fichier
     "contains"|"search")
         _filedir
         return 0
         ;;
 
-    # Commands which require .deb/.udeb file name.
+    # Commandes qui prennent un fichier .deb
     "deb")
         _filedir '?(u)deb'
         return 0
         ;;
 
-    # Commands which require package name.
+    # Commandes qui prennent un nom de paquet
     "build"|"build-dep"|"changelog"|"depends"|"download"|"install"|"list"|\
     "policy"|"recommends"|"rdepends"|"show"|"source")
-        COMPREPLY=( $( apt-cache --no-generate pkgnames "$cur" \
-        2> /dev/null ) )
+        COMPREPLY=( $( apt-cache --no-generate pkgnames "$cur" 2> /dev/null ) )
         return 0
         ;;
 
-    # Commands which require name of installed package.
+    # Commandes pour paquets installés
     "content"|"hold"|"purge"|"reinstall"|"remove"|"unhold"|"version"|"autopurge")
         if [ -f /etc/debian_version ]; then
-        # Debian system
-        COMPREPLY=( $( _xfunc dpkg _comp_dpkg_installed_packages $cur ) )
+            COMPREPLY=( $( _xfunc dpkg _comp_dpkg_installed_packages $cur ) )
         else
-        # assume RPM based
-        _xfunc rpm _rpm_installed_packages
+            _xfunc rpm _rpm_installed_packages
         fi
         return 0
         ;;
