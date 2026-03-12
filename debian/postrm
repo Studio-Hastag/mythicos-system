@@ -1,32 +1,35 @@
 #!/bin/sh
 # postrm script for MythicOS
-# see: dh_installdeb(1)
 
 set -e
 
 case "$1" in
-    purge|remove|upgrade|deconfigure)
-        # Désactiver le service MythicOS si il existe
-        if which update-rc.d >/dev/null 2>&1; then
+    remove|purge)
+
+        # désactiver le service
+        if command -v update-rc.d >/dev/null 2>&1; then
             update-rc.d -f mythicos-system remove || true
         fi
 
-        # Supprimer le dossier d'ajustements système MythicOS
-        if [ -d /usr/lib/mythicos/mythicos-system ]; then
-            rm -rf /usr/lib/mythicos/mythicos-system
+        if command -v systemctl >/dev/null 2>&1; then
+            systemctl disable mythicos-system.service || true
+            systemctl daemon-reload || true
         fi
+
     ;;
+
+    upgrade|deconfigure)
+    ;;
+
     failed-upgrade)
-        # rien à faire pour un échec de mise à jour
     ;;
+
     *)
         echo "postrm called with unknown argument \`$1'" >&2
         exit 1
     ;;
 esac
 
-# DEBHELPER hook
-# dh_installdeb remplacera automatiquement ce bloc si nécessaire
 #DEBHELPER#
 
 exit 0

@@ -1,4 +1,5 @@
 [Unit]
+Description=MythicOS System Service
 Before=multi-user.target
 After=local-fs.target
 
@@ -6,7 +7,7 @@ After=local-fs.target
 Type=simple
 Restart=no
 KillMode=process
-ExecStart=/etc/init.d/mintsystem start
+ExecStart=/etc/init.d/mythicos-system start
 
 [Install]
 WantedBy=multi-user.target
