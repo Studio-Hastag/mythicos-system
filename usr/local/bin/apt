@@ -6,7 +6,6 @@ import subprocess
 import shlex
 import shutil
 
-
 # =========================
 # 🎨 Couleurs ANSI
 # =========================
@@ -18,7 +17,6 @@ MAGENTA = "\033[95m"
 CYAN = "\033[96m"
 GRAS = "\033[1m"
 RESET = "\033[0m"
-
 
 # =========================
 # 🏴 Bannière MythicOS
@@ -32,10 +30,8 @@ def banniere():
 ██║ ╚═╝ ██║   ██║      ██║   ██║  ██║██║╚██████╗╚██████╔╝███████║
 ╚═╝     ╚═╝   ╚═╝      ╚═╝   ╚═╝  ╚═╝╚═╝ ╚═════╝ ╚═════╝ ╚══════╝
 """ + RESET)
-
     print(GRAS + VERT + "Gestionnaire de paquets MythicOS" + RESET)
     print(JAUNE + "Wrapper avancé pour APT\n" + RESET)
-
 
 # =========================
 # 📘 Aide complète
@@ -45,7 +41,6 @@ def usage():
     print(GRAS + "Utilisation :" + RESET)
     print("  apt commande [options]")
     print("  apt help commande\n")
-
     print(GRAS + "Commandes disponibles :" + RESET)
     print("""
   add-repository   - Ajouter un dépôt
@@ -82,14 +77,12 @@ def usage():
   showhold         - Identique à held
   showsrc          - Infos paquet source
   source           - Télécharger sources
-  sources          - Identique à edit-sources
   unhold           - Débloquer un paquet
   update           - Mettre à jour liste paquets
   upgrade          - Mettre à jour paquets
   version          - Afficher version installée
 """)
     sys.exit(1)
-
 
 # =========================
 # Alias
@@ -99,7 +92,6 @@ aliases = {
     "sources": "edit-sources",
     "held": "showhold"
 }
-
 
 # =========================
 # Version
@@ -114,17 +106,14 @@ if any(arg == "--version" for arg in sys.argv[1:]):
         print("apt (MythicOS) - version indisponible")
     sys.exit(0)
 
-
 if len(sys.argv) < 2:
     usage()
-
 
 argcommand = sys.argv[1]
 argoptions = sys.argv[2:]
 
 if argcommand in aliases:
     argcommand = aliases[argcommand]
-
 
 # =========================
 # Mapping commandes
@@ -149,13 +138,11 @@ elif argcommand in ("stats", "depends", "rdepends", "policy"):
     command = ["apt-cache", argcommand] + argoptions
 
 elif argcommand == "changelog":
-    if os.path.exists("/usr/lib/python3/dist-packages/mintcommon/apt_changelog.py"):
-        command = ["/usr/lib/python3/dist-packages/mintcommon/apt_changelog.py"] + argoptions
-    else:
-        command = ["aptitude", argcommand] + argoptions
+    # MythicOS n'a pas de apt_changelog.py
+    command = ["aptitude", argcommand] + argoptions
 
 elif argcommand == "recommends":
-    command = ["/usr/lib/linuxmint/mintsystem/mint-apt-recommends.py"] + argoptions
+    command = ["/usr/lib/mythicos/mythicos-system/mythicos-apt-recommends.py"] + argoptions
 
 elif argcommand in ("showhold", "hold", "unhold"):
     command = ["apt-mark", argcommand] + argoptions
@@ -188,7 +175,7 @@ elif argcommand == "version":
     sys.exit(0)
 
 elif argcommand == "download":
-    command = ["/usr/lib/linuxmint/mintsystem/mint-apt-download.py"] + argoptions
+    command = ["/usr/lib/mythicos/mythicos-system/mythicos-apt-download.py"] + argoptions
 
 elif argcommand == "add-repository":
     command = ["add-apt-repository"] + argoptions
@@ -201,7 +188,6 @@ elif argcommand == "search":
 
 else:
     usage()
-
 
 # =========================
 # Sudo automatique
@@ -216,7 +202,6 @@ if os.getuid() != 0 and argcommand in (
     "autopurge"
 ):
     command = ["sudo"] + command
-
 
 # =========================
 # Exécution

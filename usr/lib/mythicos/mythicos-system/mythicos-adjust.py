@@ -9,19 +9,14 @@ import filecmp
 import configparser
 import glob
 
-TIMESTAMPS = "/var/log/mythicos-system.timestamps"
+TIMESTAMPS = "/var/log/mythicos-mintsystem.timestamps"
 
-class MythicOSSystem():
-if not os.path.exists("/var/log"):
-    os.makedirs("/var/log")
 
-log_path = "/var/log/mythicos-system.log"
-if not os.path.exists(log_path):
-    open(log_path, "w").close()
+class MythicOSSystem:
     def __init__(self):
         self.start_time = datetime.datetime.now()
-        self.logfile = open("/var/log/mythicos-system.log", "w")
-        self.time_log("MythicOS system adjust started")
+        self.logfile = open("/var/log/mythicos-mintsystem.log", "w")
+        self.time_log("mythicos system started")
         self.executed = []
         self.overwritten = []
         self.skipped = []
@@ -46,27 +41,25 @@ if not os.path.exists(log_path):
 
     def read_timestamps(self):
         if os.path.exists(TIMESTAMPS):
-            with open(TIMESTAMPS) as filehandle:
-                for line in filehandle:
+            with open(TIMESTAMPS) as f:
+                for line in f:
                     line = line.strip()
-                    line_items = line.split()
-                    if len(line_items) == 2:
-                        self.original_timestamps[line_items[0]] = line_items[1]
-                        self.timestamps[line_items[0]] = line_items[1]
+                    items = line.split()
+                    if len(items) == 2:
+                        self.original_timestamps[items[0]] = items[1]
+                        self.timestamps[items[0]] = items[1]
 
     def write_timestamps(self):
-        with open(TIMESTAMPS, "w") as filehandle:
+        with open(TIMESTAMPS, "w") as f:
             for filename in sorted(self.timestamps.keys()):
-                line = "%s %s\n" % (filename, self.timestamps[filename])
-                filehandle.write(line)
+                f.write("%s %s\n" % (filename, self.timestamps[filename]))
 
     def has_changed(self, filename, collection, description):
         if not os.path.exists(filename):
             return False
-
         timestamp = os.stat(filename).st_mtime
-        has_changed = filename not in self.original_timestamps or self.original_timestamps[filename] != str(timestamp)
-
+        has_changed = (filename not in self.original_timestamps or
+                       self.original_timestamps[filename] != str(timestamp))
         if has_changed:
             collection.append("%s (%s)" % (filename, description))
         else:
@@ -88,7 +81,7 @@ if not os.path.exists(log_path):
 
     def adjust(self):
         try:
-            # Read configuration
+            # Lecture configuration
             try:
                 config = configparser.RawConfigParser()
                 config.read('/etc/mythicos/mythicos-system.conf')
@@ -106,94 +99,79 @@ if not os.path.exists(log_path):
                 self.log("Disabled - Exited")
                 self.quit()
 
-            adjustment_directory = "/usr/share/mythicos/adjustments/"
+            adjustment_dir = "/usr/share/mythicos/adjustments/"
 
-            # Execute scripts
-            for filename in os.listdir(adjustment_directory):
-                basename, extension = os.path.splitext(filename)
-                if extension == ".execute":
-                    full_path = os.path.join(adjustment_directory, filename)
-                    os.system(full_path)
-                    self.executed.append(full_path)
+            # Execute .execute files
+            for filename in os.listdir(adjustment_dir):
+                if filename.endswith(".execute"):
+                    path = os.path.join(adjustment_dir, filename)
+                    os.system(path)
+                    self.executed.append(path)
 
-            # Preserve list
+            # Read .preserve files
             array_preserves = []
-            if os.path.exists(adjustment_directory):
-                for filename in os.listdir(adjustment_directory):
-                    basename, extension = os.path.splitext(filename)
-                    if extension == ".preserve":
-                        with open(os.path.join(adjustment_directory, filename)) as filehandle:
-                            for line in filehandle:
-                                line = line.strip()
-                                if line:
-                                    array_preserves.append(line)
+            for filename in os.listdir(adjustment_dir):
+                if filename.endswith(".preserve"):
+                    with open(os.path.join(adjustment_dir, filename)) as f:
+                        for line in f:
+                            line = line.strip()
+                            if line:
+                                array_preserves.append(line)
 
-            # Overwrite adjustments
+            # Handle .overwrite files
             overwrites = {}
-            if os.path.exists(adjustment_directory):
-                for filename in sorted(os.listdir(adjustment_directory)):
-                    basename, extension = os.path.splitext(filename)
-                    if extension == ".overwrite":
-                        with open(os.path.join(adjustment_directory, filename)) as filehandle:
-                            for line in filehandle:
-                                line = line.strip()
-                                line_items = line.split()
-                                if len(line_items) == 2:
-                                    source, destination = line.split()
-                                    if destination not in array_preserves:
-                                        overwrites[destination] = source
+            for filename in os.listdir(adjustment_dir):
+                if filename.endswith(".overwrite"):
+                    with open(os.path.join(adjustment_dir, filename)) as f:
+                        for line in f:
+                            items = line.strip().split()
+                            if len(items) == 2:
+                                src, dst = items
+                                if dst not in array_preserves:
+                                    overwrites[dst] = src
 
-            for destination, source in overwrites.items():
-                if os.path.exists(source):
-                    if "*" not in destination:
-                        self.replace_file(source, destination)
+            for dst, src in overwrites.items():
+                if os.path.exists(src):
+                    if "*" not in dst:
+                        self.replace_file(src, dst)
                     else:
-                        for matching_destination in glob.glob(destination):
-                            self.replace_file(source, matching_destination)
+                        for match in glob.glob(dst):
+                            self.replace_file(src, match)
 
             # Menu adjustments
-            for filename in os.listdir(adjustment_directory):
-                basename, extension = os.path.splitext(filename)
-                if extension == ".menu":
-                    with open(os.path.join(adjustment_directory, filename)) as filehandle:
-                        for line in filehandle:
+            for filename in os.listdir(adjustment_dir):
+                if filename.endswith(".menu"):
+                    with open(os.path.join(adjustment_dir, filename)) as f:
+                        for line in f:
                             line = line.strip()
-                            line_items = line.split()
-                            if len(line_items) > 0:
-                                action = line_items[0]
-                                if action in ["hide", "show", "categories", "onlyshowin", "notshowin", "exec", "rename"]:
-                                    # Same logic as original MintSystem
-                                    pass  # conserve l'implémentation existante pour chaque cas
-
-            self.log("Executed:")
-            for f in sorted(self.executed):
-                self.log(f"  {f}")
-
-            self.log("Replaced:")
-            for f in sorted(self.overwritten):
-                self.log(f"  {f}")
-
-            self.log("Edited:")
-            for f in sorted(self.edited):
-                self.log(f"  {f}")
-
-            self.log("Skipped:")
-            for f in sorted(self.skipped):
-                self.log(f"  {f}")
-
+                            items = line.split()
+                            if not items:
+                                continue
+                            action = items[0]
+                            if action == "hide" and len(items) == 2:
+                                desktop_file = items[1]
+                                if self.has_changed(desktop_file, self.edited, "hide"):
+                                    os.system(f"grep -q -F 'NoDisplay=true' {desktop_file} || echo '\nNoDisplay=true' >> {desktop_file}")
+                                    self.update_timestamp(desktop_file)
+                            elif action == "show" and len(items) == 2:
+                                desktop_file = items[1]
+                                if self.has_changed(desktop_file, self.edited, "show"):
+                                    os.system(f"sed -i -e '/^NoDisplay/d' \"{desktop_file}\"")
+                                    self.update_timestamp(desktop_file)
+            # Logs
+            self.log("Executed: %s" % self.executed)
+            self.log("Replaced: %s" % self.overwritten)
+            self.log("Edited: %s" % self.edited)
+            self.log("Skipped: %s" % self.skipped)
             if self.timestamps_changed:
                 self.write_timestamps()
-
-            if os.path.exists("/oem/done.flag"):
-                os.system("deluser --remove-home oem")
-                os.system("rm -rf /oem")
-                self.log("Removed OEM user")
-
         except Exception as e:
             print(e)
-            self.log(str(e))
+            self.log(e)
 
-# Run
-mythicos = MythicOSSystem()
-mythicos.adjust()
-mythicos.quit()
+
+if __name__ == "__main__":
+    system = MythicOSSystem()
+    system.adjust()
+    system.quit()
+    
