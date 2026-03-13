@@ -6,200 +6,223 @@ import subprocess
 import shlex
 import shutil
 
+
+# =========================
+# 🎨 Couleurs ANSI
+# =========================
+ROUGE = "\033[91m"
+VERT = "\033[92m"
+JAUNE = "\033[93m"
+BLEU = "\033[94m"
+MAGENTA = "\033[95m"
+CYAN = "\033[96m"
+GRAS = "\033[1m"
+RESET = "\033[0m"
+
+
+# =========================
+# 🏴 Bannière MythicOS
+# =========================
+def banniere():
+    print(GRAS + CYAN + r"""
+███╗   ███╗██╗   ██╗████████╗██╗  ██╗██╗ ██████╗ ██████╗ ███████╗
+████╗ ████║╚██╗ ██╔╝╚══██╔══╝██║  ██║██║██╔════╝██╔═══██╗██╔════╝
+██╔████╔██║ ╚████╔╝    ██║   ███████║██║██║     ██║   ██║███████╗
+██║╚██╔╝██║  ╚██╔╝     ██║   ██╔══██║██║██║     ██║   ██║╚════██║
+██║ ╚═╝ ██║   ██║      ██║   ██║  ██║██║╚██████╗╚██████╔╝███████║
+╚═╝     ╚═╝   ╚═╝      ╚═╝   ╚═╝  ╚═╝╚═╝ ╚═════╝ ╚═════╝ ╚══════╝
+""" + RESET)
+
+    print(GRAS + VERT + "Gestionnaire de paquets MythicOS" + RESET)
+    print(JAUNE + "Wrapper avancé pour APT\n" + RESET)
+
+
+# =========================
+# 📘 Aide complète
+# =========================
 def usage():
+    banniere()
+    print(GRAS + "Utilisation :" + RESET)
+    print("  apt commande [options]")
+    print("  apt help commande\n")
+
+    print(GRAS + "Commandes disponibles :" + RESET)
     print("""
-This is the Linux Mint "apt" command.
-
-This command acts as a wrapper for the APT package manager and many other useful tools such as apt-get, apt-cache, apt-mark, dpkg, aptitude...etc.
-
-It is installed in /usr/local/bin/apt. To use the upstream apt command directly type /usr/bin/apt.
-
-Usage: apt command [options]
-       apt help command [options]
-
-Commands:
-  add-repository   - Add entries to apt sources.list
-  autoclean        - Erase cache for packages no longer available
-  autopurge        - Erase system-wide config files left by removed packages
-  autoremove       - Remove dependency packages no longer required
-  build            - Build binary or source packages from sources
-  build-dep        - Configure build-dependencies for source packages
-  changelog        - View a package's changelog
-  check            - Verify there are no broken dependencies
-  clean            - Erase downloaded archive files
-  contains         - List packages containing a file
-  content          - List files contained in and installed by a package(s)
-  deb              - Install a local .deb package
-  depends          - Show package dependency information
-  dist-upgrade     - Fully upgrade the system by allowing other package changes
-  download         - Download packages to the current working directory
-  edit-sources     - Edit /etc/apt/sources.list with your preferred text editor
-  dselect-upgrade  - Follow dselect selections
-  full-upgrade     - Same as 'dist-upgrade'
-  held             - List all held packages
-  help             - Show help for a command
-  hold             - Hold a package
-  install          - Install and/or upgrade packages
-  list             - List packages handled by the system (e.g., installed)
-  policy           - Show policy settings
-  purge            - Remove packages and their system-wide configuration files
-  recommends       - List missing recommended packages for a particular package
-  rdepends         - Show reverse dependency information for a package
-  reinstall        - Reinstall packages or install if not yet installed
-  remove           - Remove packages
-  search           - Search for a package by name and/or expression
-  show             - Display detailed information about a package
-  showhold         - Same as 'held'
-  showsrc          - Display source package records matching the given package
-  source           - Download source archives
-  sources          - Same as 'edit-sources'
-  unhold           - Unhold a package
-  update           - Download lists of new/upgradable packages
-  upgrade          - Perform a safe upgrade
-  version          - Show the installed version of a package
-    """)
-
+  add-repository   - Ajouter un dépôt
+  autoclean        - Nettoyer le cache des paquets obsolètes
+  autopurge        - Supprimer configs restantes des paquets supprimés
+  autoremove       - Supprimer dépendances inutiles
+  build            - Construire un paquet
+  build-dep        - Installer dépendances de compilation
+  changelog        - Voir journal des modifications
+  check            - Vérifier dépendances cassées
+  clean            - Nettoyer le cache téléchargé
+  contains         - Trouver quel paquet contient un fichier
+  content          - Lister fichiers d’un paquet
+  deb              - Installer un .deb local
+  depends          - Afficher dépendances
+  dist-upgrade     - Mise à niveau complète
+  download         - Télécharger un paquet
+  edit-sources     - Modifier sources.list
+  dselect-upgrade  - Appliquer sélections dselect
+  full-upgrade     - Identique à dist-upgrade
+  held             - Lister paquets bloqués
+  help             - Aide sur commande
+  hold             - Bloquer un paquet
+  install          - Installer un paquet
+  list             - Lister paquets
+  policy           - Afficher politique versions
+  purge            - Supprimer paquet + configuration
+  recommends       - Voir paquets recommandés manquants
+  rdepends         - Voir dépendances inverses
+  reinstall        - Réinstaller un paquet
+  remove           - Supprimer un paquet
+  search           - Rechercher un paquet
+  show             - Infos détaillées
+  showhold         - Identique à held
+  showsrc          - Infos paquet source
+  source           - Télécharger sources
+  sources          - Identique à edit-sources
+  unhold           - Débloquer un paquet
+  update           - Mettre à jour liste paquets
+  upgrade          - Mettre à jour paquets
+  version          - Afficher version installée
+""")
     sys.exit(1)
 
+
+# =========================
+# Alias
+# =========================
 aliases = {
     "dist-upgrade": "full-upgrade",
     "sources": "edit-sources",
     "held": "showhold"
 }
 
+
+# =========================
+# Version
+# =========================
 if any(arg == "--version" for arg in sys.argv[1:]):
     try:
-        version = subprocess.check_output(["/usr/bin/apt", "--version"], text=True).splitlines()[0]
-        print(f"{version} (Mint wrapper)")
+        version = subprocess.check_output(
+            ["/usr/bin/apt", "--version"], text=True
+        ).splitlines()[0]
+        print(GRAS + version + RESET + " (MythicOS)")
     except Exception:
-        print("apt (Mint wrapper) - version info unavailable")
+        print("apt (MythicOS) - version indisponible")
     sys.exit(0)
+
 
 if len(sys.argv) < 2:
     usage()
 
+
 argcommand = sys.argv[1]
 argoptions = sys.argv[2:]
 
-for command in ["install", "remove", "update", "clean"]:
-    if argcommand.startswith("-") and command in argoptions:
-        while argcommand != command:
-            temp = argoptions[0]
-            for i in range(1, len(argoptions)):
-                argoptions[i-1] = argoptions[i]
-            argoptions[len(argoptions)-1] = argcommand
-            argcommand = temp
-
-command = ""
-
-show_help = False
-sort = False
-highlight = False
-
-if argcommand == "help":
-    if len(sys.argv) < 3:
-        usage()
-    show_help = True
-    argcommand = sys.argv[2]
-    argoptions = sys.argv[3:]
-
-if argcommand in aliases.keys():
+if argcommand in aliases:
     argcommand = aliases[argcommand]
 
-if argcommand in ("autoremove", "list", "show", "install", "remove", "purge", "update", "upgrade", "full-upgrade", "edit-sources", "showsrc", "autopurge"):
-    # apt
+
+# =========================
+# Mapping commandes
+# =========================
+if argcommand in (
+    "autoremove", "list", "show", "install", "remove",
+    "purge", "update", "upgrade", "full-upgrade",
+    "edit-sources", "showsrc", "autopurge"
+):
     command = ["/usr/bin/apt", argcommand] + argoptions
-elif argcommand in ("clean", "dselect-upgrade", "build-dep", "check", "autoclean", "source", "moo"):
-    # apt-get
+
+elif argcommand in (
+    "clean", "dselect-upgrade", "build-dep",
+    "check", "autoclean", "source", "moo"
+):
     command = ["apt-get", argcommand] + argoptions
-elif argcommand in ("reinstall", ):
-    # aptitude
+
+elif argcommand in ("reinstall",):
     command = ["aptitude", argcommand] + argoptions
+
 elif argcommand in ("stats", "depends", "rdepends", "policy"):
-    # apt-cache
     command = ["apt-cache", argcommand] + argoptions
-elif argcommand in ("changelog", ):
+
+elif argcommand == "changelog":
     if os.path.exists("/usr/lib/python3/dist-packages/mintcommon/apt_changelog.py"):
         command = ["/usr/lib/python3/dist-packages/mintcommon/apt_changelog.py"] + argoptions
     else:
         command = ["aptitude", argcommand] + argoptions
-elif argcommand in ("recommends", ):
+
+elif argcommand == "recommends":
     command = ["/usr/lib/linuxmint/mintsystem/mint-apt-recommends.py"] + argoptions
+
 elif argcommand in ("showhold", "hold", "unhold"):
-    # apt-mark
     command = ["apt-mark", argcommand] + argoptions
+
 elif argcommand in ("markauto", "markmanual"):
-    # apt-mark
     command = ["apt-mark", argcommand[4:]] + argoptions
+
 elif argcommand == "contains":
     command = ["dpkg", "-S"] + argoptions
+
 elif argcommand == "content":
     command = ["dpkg", "-L"] + argoptions
+
 elif argcommand == "deb":
     command = ["dpkg", "-i"] + argoptions
+
 elif argcommand == "build":
     command = ["dpkg-buildpackage"] + argoptions
+
 elif argcommand == "version":
-    command = ["dpkg-buildpackage"] + argoptions
     try:
-        version = subprocess.check_output("dpkg-query -f '${Version}' -W %s 2>/dev/null" % shlex.quote(" ".join(argoptions)), shell=True).decode("UTF-8")
+        version = subprocess.check_output(
+            "dpkg-query -f '${Version}' -W %s 2>/dev/null"
+            % shlex.quote(" ".join(argoptions)),
+            shell=True
+        ).decode("UTF-8")
         print(version)
     except:
         pass
     sys.exit(0)
+
 elif argcommand == "download":
     command = ["/usr/lib/linuxmint/mintsystem/mint-apt-download.py"] + argoptions
+
 elif argcommand == "add-repository":
     command = ["add-apt-repository"] + argoptions
+
 elif argcommand == "search":
     columns = 80
     if sys.stdin.isatty():
-        columns, rows = shutil.get_terminal_size(fallback = (80, 24))
+        columns, rows = shutil.get_terminal_size(fallback=(80, 24))
     command = ["aptitude", "-w", str(columns), argcommand] + argoptions
+
 else:
     usage()
-    sys.exit(1)
 
-# Sudo prefix, unless simulating an applicable command
-if os.getuid() != 0:
-    if argcommand in ("autoremove", "install", "remove", "purge", "update", "upgrade", "full-upgrade", "edit-sources", "clean", "dselect-upgrade", "build-dep", "check", "autoclean", "reinstall", "deb", "hold", "unhold", "add-repository", "markauto", "markmanual", "autopurge"):
-        # The above commands for which simulating is applicable
-        simoptfound = False
-        if argcommand in ("autoremove", "install", "remove", "purge", "upgrade", "full-upgrade", "clean", "dselect-upgrade", "build-dep", "check", "autoclean", "reinstall"):
-            for simarg in ('-s', '--simulate', '--just-print', '--dry-run', '--recon', '--no-act'):
-                if simarg in argoptions:
-                    simoptfound = True
 
-        if not simoptfound:
-            command = ["sudo"] + command
+# =========================
+# Sudo automatique
+# =========================
+if os.getuid() != 0 and argcommand in (
+    "autoremove", "install", "remove", "purge",
+    "update", "upgrade", "full-upgrade",
+    "edit-sources", "clean", "dselect-upgrade",
+    "build-dep", "check", "autoclean",
+    "reinstall", "deb", "hold", "unhold",
+    "add-repository", "markauto", "markmanual",
+    "autopurge"
+):
+    command = ["sudo"] + command
 
-# Color highlighting
-if argcommand in ("content", "version", "policy", "depends", "rdepends", "search") and len(argoptions) >= 1:
-    highlight = True
 
-# Sorting
-if argcommand in ("content", "contains"):
-    sort = True
-
-if show_help:
-    print("\"apt " + argcommand + " " + " ".join(argoptions) + "\" is equivalent to \"" + " ".join(command) + "\"")
-else:
-    try:
-        if sort and highlight:
-            ps1 = subprocess.Popen(command, stdout=subprocess.PIPE)
-            ps2 = subprocess.Popen("sort", stdin=ps1.stdout, stdout=subprocess.PIPE)
-            ps3 = subprocess.Popen(["highlight-mint"] + argoptions, stdin=ps2.stdout)
-            ps3.wait()
-        elif sort:
-            ps1 = subprocess.Popen(command, stdout=subprocess.PIPE)
-            ps2 = subprocess.Popen("sort", stdin=ps1.stdout)
-            ps2.wait()
-        elif highlight:
-            ps1 = subprocess.Popen(command, stdout=subprocess.PIPE)
-            ps2 = subprocess.Popen(["highlight-mint"] + argoptions, stdin=ps1.stdout)
-            ps2.wait()
-        else:
-            return_code = subprocess.call(command)
-            sys.exit(return_code)
-    except KeyboardInterrupt:
-        pass
+# =========================
+# Exécution
+# =========================
+try:
+    return_code = subprocess.call(command)
+    sys.exit(return_code)
+except KeyboardInterrupt:
+    print("\n" + ROUGE + "Opération interrompue." + RESET)

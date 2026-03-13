@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+"""
+Script MythicOS pour réinitialiser les recommends APT et Synaptic.
+Doit être exécuté une seule fois grâce au flag dans /var/lib/mythicos/mythicos-system
+"""
+
+import os
+
+FLAG_DIR = "/var/lib/mythicos/mythicos-system"
+FLAG_FILE = os.path.join(FLAG_DIR, "set-apt-recommends.flag")
+RECOMMENDS_FILE = "/etc/apt/apt.conf.d/00recommends"
+SYNAPTIC_FILE = "/etc/apt/apt.conf.d/99synaptic"
+
+# Crée le dossier des flags si nécessaire
+os.makedirs(FLAG_DIR, exist_ok=True)
+
+if not os.path.exists(FLAG_FILE):
+    with open(FLAG_FILE, "w") as flag_file:
+
+        # Supprimer le fichier APT Recommends
+        if os.path.exists(RECOMMENDS_FILE):
+            os.remove(RECOMMENDS_FILE)
+            flag_file.write(f"Removed {RECOMMENDS_FILE}\n")
+
+        # Modifier la config Synaptic pour activer les recommends
+        if os.path.exists(SYNAPTIC_FILE):
+            lines = []
+            with open(SYNAPTIC_FILE, "r") as f:
+                for line in f:
+                    if "APT::Install-Recommends" in line:
+                        line = line.replace("false", "true")
+                    lines.append(line)
+            with open(SYNAPTIC_FILE, "w") as f:
+                f.writelines(lines)
+            flag_file.write(f"Set configuration in {SYNAPTIC_FILE}\n")
+
+        # Redémarrer packagekit pour appliquer les changements
+        os.system("service packagekit restart")
